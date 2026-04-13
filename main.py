@@ -6,6 +6,7 @@ import config
 import time
 import LCD1602
 import ws2812
+import uasyncio
 
 # mock class should the LCD not be detected
 class NoLcd:
@@ -55,5 +56,17 @@ dmx.set_updatefunction(update)
 # dmx.set_statusfunction(dmxstatuschange)  # Not needed with full rainbow fallback
 
 print("INFO: Starting Main Loop")
-while True:
-    dmx.loop()
+
+async def main():
+    while True:
+        dmx.loop()
+
+if __name__ == "__main__":
+    try:
+        uasyncio.run(main())
+    except KeyboardInterrupt:
+        uasyncio.run(blank())
+        print("clearing screen")
+        lcd.print_lcd("")
+        utime.sleep(3)
+        print("exiting")
