@@ -5,6 +5,21 @@ import apa102_thread
 import dmx512_rx
 import config
 import time
+import LCD1602
+
+# mock class should the LCD not be detected
+class NoLcd:
+    def print_lcd(self, _m):
+        return
+    def setCursor(self, _x, _y):
+        return
+    def printout(self, _m):
+        return
+
+try:
+    lcd = LCD1602.LCD1602(16,2)
+except OSError:
+    lcd = NoLcd()
 
 # Get Our Configuration
 dmxrx_deviceaddress = config.dmx_address  # Our device Base DMX Address
@@ -18,7 +33,17 @@ alloc_emergency_exception_buf(512)  # Allocate Emergency Exception Buffer
 def update_apa102_simple(grgbw_list):
     global_bright = int(grgbw_list[0] / 8)  # Valid 1-31, 0 = disable
     pixels.customwrite(global_bright, grgbw_list[1], grgbw_list[3], grgbw_list[2], 1, 3)
+    
+    lcd.clear()
+    
+    lcd.setCursor(0, 0)
+    lcd.printout(" ".join(f"{value:03}" for value in grgbw_list[0:3]))
+    
+    lcd.setCursor(0, 1)
+    lcd.printout(" ".join(f"{value:03}" for value in grgbw_list[3:]))
 
+
+    
 def update_apa102_complex(grgbw_list):
     # First String
     # print(list(grgbw_list))

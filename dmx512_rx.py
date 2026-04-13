@@ -1,6 +1,7 @@
 import time
 import machine
 
+
 # Constants - do not change otherwise DMX might break
 DMX_BAUD = 250000  # DMX512 runs at 250,000 baud
 DMX_RXTIMEOUT = const(2)  # Milliseconds to wait otherwise discard RX buffer
