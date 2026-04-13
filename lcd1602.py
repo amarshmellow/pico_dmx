@@ -50,68 +50,68 @@ LCD_5x8DOTS = 0x00
 
 
 class LCD1602:
-    def __init__(self, col, row):
-        self._row = row
-        self._col = col
+  def __init__(self, col, row):
+    self._row = row
+    self._col = col
 
-        self._showfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
-        self.begin(self._row,self._col)
+    self._showfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS
+    self.begin(self._row,self._col)
+        
+  def command(self,cmd):
+    LCD1602_I2C.writeto_mem(LCD_ADDRESS, 0x80, chr(cmd))
 
-    def command(self,cmd):
-        LCD1602_I2C.writeto_mem(LCD_ADDRESS, 0x80, chr(cmd))
+  def write(self,data):
+    LCD1602_I2C.writeto_mem(LCD_ADDRESS, 0x40, chr(data))
 
-    def write(self,data):
-        LCD1602_I2C.writeto_mem(LCD_ADDRESS, 0x40, chr(data))
+  def setCursor(self,col,row):
+    if(row == 0):
+      col|=0x80
+    else:
+      col|=0xc0
+    LCD1602_I2C.writeto(LCD_ADDRESS, bytearray([0x80,col]))
 
-    def setCursor(self,col,row):
-        if(row == 0):
-            col|=0x80
-        else:
-            col|=0xc0;
-        LCD1602_I2C.writeto(LCD_ADDRESS, bytearray([0x80,col]))
+  def clear(self):
+    self.command(LCD_CLEARDISPLAY)
+    time.sleep(0.002)
 
-    def clear(self):
-        self.command(LCD_CLEARDISPLAY)
-        time.sleep(0.002)
+  def printout(self,arg):
+    if(isinstance(arg,int)):
+      arg=str(arg)
 
-    def printout(self,arg):
-        if(isinstance(arg,int)):
-            arg=str(arg)
+    for x in bytearray(arg,'utf-8'):
+      self.write(x)
 
-        for x in bytearray(arg,'utf-8'):
-            self.write(x)
+  def display(self):
+    self._showcontrol |= LCD_DISPLAYON 
+    self.command(LCD_DISPLAYCONTROL | self._showcontrol)
 
-    def display(self):
-        self._showcontrol |= LCD_DISPLAYON
-        self.command(LCD_DISPLAYCONTROL | self._showcontrol)
+  def print_lcd(self, message: str):
+    self.clear()
+    self.setCursor(0, 0)
+    self.printout(message)
 
-    def print_lcd(self, message: str):
-        self.clear()
-        self.setCursor(0, 0)
-        self.printout(message)
+  def begin(self,cols,lines):
+    if (lines > 1):
+        self._showfunction |= LCD_2LINE 
+     
+    self._numlines = lines 
+    self._currline = 0 
 
-    def begin(self,cols,lines):
-        if (lines > 1):
-            self._showfunction |= LCD_2LINE
+    time.sleep(0.05)
 
-        self._numlines = lines
-        self._currline = 0
+    # Send function set command sequence
+    self.command(LCD_FUNCTIONSET | self._showfunction)
+    time.sleep(0.005)
 
-        time.sleep(0.05)
+    self.command(LCD_FUNCTIONSET | self._showfunction)
+    time.sleep(0.005)
 
-        # Send function set command sequence
-        self.command(LCD_FUNCTIONSET | self._showfunction)
-        time.sleep(0.005)
+    self.command(LCD_FUNCTIONSET | self._showfunction)
 
-        self.command(LCD_FUNCTIONSET | self._showfunction);
-        time.sleep(0.005)
+    self.command(LCD_FUNCTIONSET | self._showfunction)
 
-        self.command(LCD_FUNCTIONSET | self._showfunction)
-
-        self.command(LCD_FUNCTIONSET | self._showfunction)
-
-        self._showcontrol = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF
-        self.display()
-        self.clear()
-        self._showmode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT
-        self.command(LCD_ENTRYMODESET | self._showmode);
+    self._showcontrol = LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKOFF 
+    self.display()
+    self.clear()
+    self._showmode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT 
+    self.command(LCD_ENTRYMODESET | self._showmode)
