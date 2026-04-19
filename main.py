@@ -43,19 +43,22 @@ def update(grgbw_list):
     leds = grgbw_list[0:6]
 
 
-# def dmxstatuschange(status):
-#     if status == 0: # We are offline & timed-out
-#         print("Turning off LED Output")
-#         ws2812.pixels_fill((0,0,0))
-#         await ws2812.pixels_show()
+def dmxstatuschange(status):
+    global leds
+
+    if status == 0: # We are offline & timed-out
+        print("Turning off LED Output")
+        lcd.print_lcd("DISCONNECTED")
+        for i in range(len(leds)): leds[i] = 0
 
 
 # Configuring Modules - DMX Receiver
 dmx = dmx512_rx.DMX(dmxrx_deviceaddress, dmxrx_devicechannels, 1)
 dmx.set_updatefunction(update)
-# dmx.set_statusfunction(dmxstatuschange)  # Not needed with full rainbow fallback
+dmx.set_statusfunction(dmxstatuschange)  # Not needed with full rainbow fallback
 
 print("INFO: Starting Main Loop")
+
 
 async def main():
 
