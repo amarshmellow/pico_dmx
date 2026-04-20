@@ -54,9 +54,11 @@ class LCD1602:
     self._row = row
     self._col = col
 
-    self._showfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
+    self._showfunction = LCD_4BITMODE | LCD_2LINE | LCD_5x8DOTS;
     self.begin(self._row,self._col)
         
+    self.message = ""
+    
   def command(self,cmd):
     LCD1602_I2C.writeto_mem(LCD_ADDRESS, 0x80, chr(cmd))
 
@@ -85,10 +87,20 @@ class LCD1602:
     self._showcontrol |= LCD_DISPLAYON 
     self.command(LCD_DISPLAYCONTROL | self._showcontrol)
 
-  def print_lcd(self, message: str):
-    self.clear()
-    self.setCursor(0, 0)
-    self.printout(message)
+  def print_lcd(self, message: str, blank: boolean = True):
+      
+    if message != self.message:
+        if blank:
+            self.clear()
+        self.setCursor(0, 0)
+        if len(message) > 16:
+          self.printout(message[0:16])
+          self.setCursor(0,1)
+          self.printout(message[16:])
+        else:
+            self.printout(message)
+        
+        self.message = message
 
   def begin(self,cols,lines):
     if (lines > 1):

@@ -6,8 +6,16 @@ import LCD1602
 import ws2812
 import uasyncio
 import utime
+import machine
 
 leds = [0,0,0,0,0,0]
+
+LED_PIN = const(17)
+LED_DUTY_CYCLE = const(5000)  # PWM rate, out of 65535
+LED_FREQUENCY = const(5000)  # PWM frequency, in Hz
+
+led = machine.PWM(machine.Pin(LED_PIN, machine.Pin.OUT))
+led.freq(LED_FREQUENCY)
 
 # mock class should the LCD not be detected
 class NoLcd:
@@ -33,13 +41,8 @@ alloc_emergency_exception_buf(512)  # Allocate Emergency Exception Buffer
 
 
 def update(grgbw_list):
-    global leds
-
-    lcd.clear()
-    lcd.setCursor(0, 0)
-    lcd.printout(" ".join(f"{value:03}" for value in grgbw_list[0:3]))
-    lcd.setCursor(0, 1)
-    lcd.printout(" ".join(f"{value:03}" for value in grgbw_list[3:]))
+    global leds 
+    lcd.print_lcd(" ".join(f"{value:03}" for value in grgbw_list[0:3])+"     "+" ".join(f"{value:03}" for value in grgbw_list[3:6]),False)
     leds = grgbw_list[0:6]
 
 
@@ -59,11 +62,27 @@ dmx.set_statusfunction(dmxstatuschange)  # Not needed with full rainbow fallback
 
 print("INFO: Starting Main Loop")
 
-
-async def main():
+async def blank():
 
     ws2812.pixels_fill((0,0,0))
     await ws2812.pixels_show()
+    
+async def led_flash():
+    try:
+        print("flasher running")
+        start_time = utime.time()
+        while True:
+            while utime.time() < start_time + 1:
+                await uasyncio.sleep(0.05)
+            led.duty_u16(LED_DUTY_CYCLE)
+            await uasyncio.sleep(0.02)
+            led.duty_u16(0)
+            start_time += 3
+    except uasyncio.CancelledError:
+        pass
+
+async def main():
+    blank()
     while True:
         dmx.loop()
         ws2812.pixels_set(0,(leds[0],0,0))
@@ -75,14 +94,9 @@ async def main():
         await ws2812.pixels_show()
 
 
-async def blank():
-
-    ws2812.pixels_fill((0,0,0))
-    await ws2812.pixels_show()
-
-
 if __name__ == "__main__":
     try:
+        uasyncio.create_task(led_flash())
         uasyncio.run(main())
     except KeyboardInterrupt:
         uasyncio.run(blank())
