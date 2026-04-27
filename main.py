@@ -31,6 +31,12 @@ try:
 except OSError:
     lcd = NoLcd()
 
+brightness = 255
+
+def scale_color(rgb):
+    global brightness
+    return tuple(((c * brightness)//255) for c in rgb)
+
 # Get DMX Configuration
 dmxrx_deviceaddress = config.dmx_address  # Our device Base DMX Address
 dmxrx_devicechannels = config.dmx_channels  # How many channels we care about
@@ -66,14 +72,14 @@ async def blank():
 
     ws2812.pixels_fill((0,0,0))
     await ws2812.pixels_show()
-    
+
 async def pattern1():
     try:
         while True:
-            ws2812.pixels_fill((0,255,0))
+            ws2812.pixels_fill(scale_color((0,255,0)))
             await ws2812.pixels_show()
             await uasyncio.sleep_ms(2000)
-            ws2812.pixels_fill((255,0,0))
+            ws2812.pixels_fill(scale_color((255,0,0)))
             await ws2812.pixels_show()
             await uasyncio.sleep_ms(2000)
     except uasyncio.CancelledError:
@@ -83,10 +89,10 @@ async def pattern1():
 async def pattern2():
     try:
         while True:
-            ws2812.pixels_fill((0,0,255))
+            ws2812.pixels_fill(scale_color((0,0,255)))
             await ws2812.pixels_show()
             await uasyncio.sleep_ms(2000)
-            ws2812.pixels_fill((0,255,255))
+            ws2812.pixels_fill(scale_color((0,255,255)))
             await ws2812.pixels_show()
             await uasyncio.sleep_ms(2000)
     except uasyncio.CancelledError:
@@ -95,10 +101,10 @@ async def pattern2():
 async def pattern3():
     try:
         while True:
-            ws2812.pixels_fill((255,0,255))
+            ws2812.pixels_fill(scale_color((255,0,255)))
             await ws2812.pixels_show()
             await uasyncio.sleep_ms(2000)
-            ws2812.pixels_fill((255,255,0))
+            ws2812.pixels_fill(scale_color((255,255,0)))
             await ws2812.pixels_show()
             await uasyncio.sleep_ms(2000)
     except uasyncio.CancelledError:
@@ -119,12 +125,14 @@ async def led_flash():
         pass
 
 async def main():
+    global channels, brightness
     currentpattern = None
     currenttask = None
-    global channels
     await blank()
     while True:
         dmx.loop()
+        
+        brightness = channels[1]
 
         async def cancel(currenttask):
             if currenttask:
