@@ -33,9 +33,12 @@ except OSError:
 
 brightness = 255
 
+gamma = 2.8
+brightness_lut = [int(((i / 255.0) ** gamma) * 255.0) for i in range(256)]
+
 def scale_color(rgb):
     global brightness
-    return tuple(((c * brightness)//255) for c in rgb)
+    return tuple(((c * brightness_lut[brightness])//255) for c in rgb)
 
 # Get DMX Configuration
 dmxrx_deviceaddress = config.dmx_address  # Our device Base DMX Address
@@ -76,12 +79,18 @@ async def blank():
 async def pattern1():
     try:
         while True:
-            ws2812.pixels_fill(scale_color((0,255,0)))
-            await ws2812.pixels_show()
-            await uasyncio.sleep_ms(2000)
-            ws2812.pixels_fill(scale_color((255,0,0)))
-            await ws2812.pixels_show()
-            await uasyncio.sleep_ms(2000)
+            starttime = utime.ticks_ms()
+
+            while utime.ticks_diff(utime.ticks_ms(),starttime) < 2000:
+                ws2812.pixels_fill(scale_color((0,255,0)))
+                await ws2812.pixels_show()
+
+            starttime = utime.ticks_ms()
+
+            while utime.ticks_diff(utime.ticks_ms(),starttime) < 2000:
+                ws2812.pixels_fill(scale_color((255,0,0)))
+                await ws2812.pixels_show()
+            
     except uasyncio.CancelledError:
         await blank()
 
