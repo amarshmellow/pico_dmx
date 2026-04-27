@@ -50,8 +50,7 @@ class DMX:
             self.dmx_offlinetimer += 1
             print(".",end='')  # Whilst DMX is offline still output a '.' to show we are running
         elif self.dmx_status:
-            # Every 1 second - print out some basic info to show we are running
-            print(f"INFO: DMXpps={self.char_counter} Loops={self.loops} Ch={self.dmxrx_list} TotalCh={self.dmx_packet_length}")
+            pass
         if self.dmx_offlinetimer >= DMX_TIMEOUT:
             # Ensures a safe/default mode is called every DMX_TIMEOUT seconds if offline
             self.dmx_offlinetimer = 0

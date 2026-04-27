@@ -87,7 +87,7 @@ class LCD1602:
     self._showcontrol |= LCD_DISPLAYON 
     self.command(LCD_DISPLAYCONTROL | self._showcontrol)
 
-  def print_lcd(self, message: str, blank: boolean = True):
+  def print_lcd(self, message: str, blank: bool = True):
       
     if message != self.message:
         if blank:
