@@ -17,6 +17,14 @@ LED_FREQUENCY = const(5000)  # PWM frequency, in Hz
 led = machine.PWM(machine.Pin(LED_PIN, machine.Pin.OUT))
 led.freq(LED_FREQUENCY)
 
+buttons = []
+buttons.append(machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_UP))
+buttons.append(machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_UP))
+buttons.append(machine.Pin(20, machine.Pin.IN, machine.Pin.PULL_UP))
+buttons.append(machine.Pin(21, machine.Pin.IN, machine.Pin.PULL_UP))
+
+debounce_ms = const(1000)
+
 # mock class should the LCD not be detected
 class NoLcd:
     def print_lcd(self, _m, _blank=True):
@@ -137,6 +145,7 @@ async def main():
     global channels, brightness
     currentpattern = None
     currenttask = None
+    pressed = utime.ticks_ms()
     await blank()
     while True:
         dmx.loop()
@@ -172,6 +181,18 @@ async def main():
             currenttask = None
             currentpattern = None
 
+        if not buttons[0].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
+                lcd.print_lcd("BUTTON 0")
+                print("BUTTON 0")
+        if not buttons[1].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
+                lcd.print_lcd("BUTTON 1")
+                print("BUTTON 1")
+        if not buttons[2].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
+                lcd.print_lcd("BUTTON 2")
+                print("BUTTON 2")
+        if not buttons[3].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
+                lcd.print_lcd("BUTTON 3") 
+                print("BUTTON 3")
         await uasyncio.sleep(0)
 
 
