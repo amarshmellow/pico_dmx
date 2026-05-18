@@ -1,12 +1,12 @@
 from micropython import alloc_emergency_exception_buf
 import gc
 import dmx512_rx
-import config
 import LCD1602
 import ws2812
 import uasyncio
 import utime
 import machine
+import json
 
 channels = [0,0,0,0,0,0]
 
@@ -48,9 +48,34 @@ def scale_color(rgb):
     global brightness
     return tuple(((c * brightness_lut[brightness])//255) for c in rgb)
 
+def write_json():
+    global dmxchannel
+    with open('dmxchannel.json', 'w') as f:
+        json.dump(dmxchannel, f)
+        
+def read_json():
+    global dmxchannel
+    with open('dmxchannel.json') as f:
+        dmxchannel = json.load(f) 
+
+dmxchannel = {"dmxchannel":0}
+try:
+    read_json()
+except:
+    write_json()
+
 # Get DMX Configuration
-dmxrx_deviceaddress = config.dmx_address  # Our device Base DMX Address
-dmxrx_devicechannels = config.dmx_channels  # How many channels we care about
+dmxrx_deviceaddress = dmxchannel["dmxchannel"] # Our device Base DMX Address
+dmxrx_devicechannels = 2 # How many channels we care about
+
+
+
+lcd.print_lcd(f"CHANNEL: {dmxchannel["dmxchannel"]}")
+print("DMX CHANNEL IS:", dmxchannel["dmxchannel"])
+
+
+utime.sleep(2)
+
 
 # Environment Setup
 gc.threshold(16384)  # Run Garbage collection everytime 16KB is allocated
@@ -59,8 +84,8 @@ alloc_emergency_exception_buf(512)  # Allocate Emergency Exception Buffer
 
 def update(grgbw_list):
     global channels 
-    lcd.print_lcd(" ".join(f"{value:03}" for value in grgbw_list[0:3])+"     "+" ".join(f"{value:03}" for value in grgbw_list[3:6]), False)
-    channels = grgbw_list[0:6]
+    #lcd.print_lcd(" ".join(f"{value:03}" for value in grgbw_list[0:3])+"     "+" ".join(f"{value:03}" for value in grgbw_list[3:6]), False)
+    channels = grgbw_list[0:2]
 
 
 def dmxstatuschange(status):
@@ -106,24 +131,36 @@ async def pattern1():
 async def pattern2():
     try:
         while True:
-            ws2812.pixels_fill(scale_color((0,0,255)))
-            await ws2812.pixels_show()
-            await uasyncio.sleep_ms(2000)
-            ws2812.pixels_fill(scale_color((0,255,255)))
-            await ws2812.pixels_show()
-            await uasyncio.sleep_ms(2000)
+
+            starttime = utime.ticks_ms()
+
+            while utime.ticks_diff(utime.ticks_ms(),starttime) < 2000:
+                ws2812.pixels_fill(scale_color((0,0,255)))
+                await ws2812.pixels_show()
+            
+            starttime = utime.ticks_ms()
+
+            while utime.ticks_diff(utime.ticks_ms(),starttime) < 2000:
+                ws2812.pixels_fill(scale_color((0,255,255)))
+                await ws2812.pixels_show()
     except uasyncio.CancelledError:
         await blank()
 
 async def pattern3():
     try:
         while True:
-            ws2812.pixels_fill(scale_color((255,0,255)))
-            await ws2812.pixels_show()
-            await uasyncio.sleep_ms(2000)
-            ws2812.pixels_fill(scale_color((255,255,0)))
-            await ws2812.pixels_show()
-            await uasyncio.sleep_ms(2000)
+            starttime = utime.ticks_ms()
+
+            while utime.ticks_diff(utime.ticks_ms(),starttime) < 2000:
+                ws2812.pixels_fill(scale_color((255,0,255)))
+                await ws2812.pixels_show()
+
+            starttime = utime.ticks_ms()
+
+            while utime.ticks_diff(utime.ticks_ms(),starttime) < 2000:
+                ws2812.pixels_fill(scale_color((255,255,0)))
+                await ws2812.pixels_show()
+                
     except uasyncio.CancelledError:
         await blank()
 
@@ -181,18 +218,19 @@ async def main():
             currenttask = None
             currentpattern = None
 
-        if not buttons[0].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
-                lcd.print_lcd("BUTTON 0")
-                print("BUTTON 0")
-        if not buttons[1].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
-                lcd.print_lcd("BUTTON 1")
-                print("BUTTON 1")
-        if not buttons[2].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
-                lcd.print_lcd("BUTTON 2")
-                print("BUTTON 2")
-        if not buttons[3].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
-                lcd.print_lcd("BUTTON 3") 
-                print("BUTTON 3")
+        # if not buttons[0].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
+        #         lcd.print_lcd("BUTTON 0")
+        #         print("BUTTON 0")
+        # if not buttons[1].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
+        #         lcd.print_lcd("BUTTON 1")
+        #         print("BUTTON 1")
+        # if not buttons[2].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
+        #         lcd.print_lcd("BUTTON 2")
+        #         print("BUTTON 2")
+        # if not buttons[3].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
+        #         lcd.print_lcd("BUTTON 3") 
+        #         print("BUTTON 3")
+
         await uasyncio.sleep(0)
 
 
