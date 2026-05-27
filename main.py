@@ -23,22 +23,8 @@ buttons.append(machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_UP))
 buttons.append(machine.Pin(20, machine.Pin.IN, machine.Pin.PULL_UP))
 buttons.append(machine.Pin(21, machine.Pin.IN, machine.Pin.PULL_UP))
 
-# if not buttons[0].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
-                # lcd.print_lcd("BUTTON 0")
-                # print("BUTTON 0")
-        # if not buttons[1].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
-                # lcd.print_lcd("BUTTON 1")
-                # print("BUTTON 1")
-        # if not buttons[2].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
-                # lcd.print_lcd("BUTTON 2")
-                # print("BUTTON 2")
-        # if not buttons[3].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
-                # lcd.print_lcd("BUTTON 3") 
-                # print("BUTTON 3")
 
-
-
-debounce_ms = const(1000)
+debounce_ms = const(100)
 
 # mock class should the LCD not be detected
 class NoLcd:
@@ -199,9 +185,20 @@ async def setup():
 
     await blank()
 
-    while buttons[3].value():
+    startime = utime.ticks_ms()
+
+    while buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),startime)<debounce_ms:
         lcd.print_lcd("SETUP   EXIT=RED"+"YEL = CHANGE C",False)
-    
+
+        if not buttons[2].value():
+            startime = utime.ticks_ms()
+            while buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),startime)<debounce_ms:
+                lcd.print_lcd("CHANNEL CHANGE")
+            lcd.print_lcd("SETUP   EXIT=RED"+"YEL = CHANGE C",False)
+            startime = utime.ticks_ms()
+            while not buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),startime)<debounce_ms:
+                pass
+
     lcd.print_lcd("RUNNING         SETUP:PRESS BLUE",False)
     return
 
@@ -264,5 +261,5 @@ if __name__ == "__main__":
         uasyncio.run(blank())
         print("clearing screen")
         lcd.print_lcd("")
-        utime.sleep(3)
+        utime.sleep(1)
         print("exiting")
