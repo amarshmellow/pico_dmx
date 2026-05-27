@@ -96,7 +96,7 @@ def dmxstatuschange(status):
 
     if status == 0: # We are offline & timed-out
         print("Turning off LED Output")
-        lcd.print_lcd("DISCONNECTED")
+        # lcd.print_lcd("DISCONNECTED")
         for i in range(len(channels)): channels[i] = 0
 
 
@@ -182,10 +182,14 @@ async def led_flash():
         pass
 
 async def setup():
+    global dmxrx_deviceaddress, dmx, dmxchannel
     dummydmxrxchannel = dmxrx_deviceaddress
     await blank()
 
     starttime = utime.ticks_ms()
+    sleeptime = 0.2
+    count = 0
+    lastpressed = None
 
     while buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),starttime)<debounce_ms:
         lcd.print_lcd("SETUP   EXIT=RED"+"YEL = CHANGE C",False)
@@ -195,20 +199,50 @@ async def setup():
             while buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),starttime)<debounce_ms:
                 lcd.print_lcd(f"CHANNEL:        {dummydmxrxchannel:03}     EXIT=RED",False)
 
-                if not buttons[0].value() and utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms:
+                if utime.ticks_diff(utime.ticks_ms(), starttime) > 1000:
+                    count = 0
+                    lastpressed = None
+
+                if not buttons[0].value() and (utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms or count > 10):
                     starttime = utime.ticks_ms()
                     dummydmxrxchannel -= 1
-                    utime.sleep(0.2)
+                    if lastpressed == 0:
+                        count += 1
+                    else:
+                        count = 0  
+                    lastpressed = 0
+                    utime.sleep(sleeptime)
 
-                if not buttons[1].value() and utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms:
+                if not buttons[1].value() and (utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms or count > 10):
                     starttime = utime.ticks_ms()
                     dummydmxrxchannel += 1
-                    utime.sleep(0.2)
+                    if lastpressed == 1:
+                        count += 1
+                    else:
+                        count = 0  
+                    lastpressed = 1
+                    utime.sleep(sleeptime)
+
+                if count > 10: 
+                    sleeptime = 0.05
+                elif count == 0:
+                    sleeptime = 0.2
 
                 if dummydmxrxchannel > 510: # upper bound
                     dummydmxrxchannel = 510
                 elif dummydmxrxchannel < 0: # lower bound
                     dummydmxrxchannel = 0
+
+                if not buttons[2].value() and utime.ticks_diff(utime.ticks_ms(), starttime) > 1000:
+                    dmxchannel["dmxchannel"] = dummydmxrxchannel
+                    dmxrx_deviceaddress = dummydmxrxchannel
+                    write_json()
+                    lcd.print_lcd(f"CHANNEL SET {dummydmxrxchannel:03}",True)
+
+                    dmx.setchannel(dmxrx_deviceaddress,dmxrx_devicechannels)
+
+                    utime.sleep(2)
+            dummydmxrxchannel = dmxrx_deviceaddress
 
             lcd.print_lcd("SETUP   EXIT=RED"+"YEL = CHANGE C",False)
             starttime = utime.ticks_ms()

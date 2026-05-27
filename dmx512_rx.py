@@ -103,3 +103,8 @@ class DMX:
         self.timer_1second = machine.Timer(period=1000, mode=machine.Timer.PERIODIC, callback=self.secondcounter)
         print("Done.")
 
+    def setchannel(self,address,channels):
+        self.dmxrx_base = address + 1
+        self.dmx_endchannel = self.dmxrx_base + channels
+
+
