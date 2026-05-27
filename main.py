@@ -10,7 +10,7 @@ import json
 
 channels = [0,0,0,0,0,0]
 
-LED_PIN = const(17)
+LED_PIN = const(17) # led flasher
 LED_DUTY_CYCLE = const(5000)  # PWM rate, out of 65535
 LED_FREQUENCY = const(5000)  # PWM frequency, in Hz
 
@@ -182,21 +182,37 @@ async def led_flash():
         pass
 
 async def setup():
-
+    dummydmxrxchannel = dmxrx_deviceaddress
     await blank()
 
-    startime = utime.ticks_ms()
+    starttime = utime.ticks_ms()
 
-    while buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),startime)<debounce_ms:
+    while buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),starttime)<debounce_ms:
         lcd.print_lcd("SETUP   EXIT=RED"+"YEL = CHANGE C",False)
 
         if not buttons[2].value():
-            startime = utime.ticks_ms()
-            while buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),startime)<debounce_ms:
-                lcd.print_lcd("CHANNEL CHANGE")
+            starttime = utime.ticks_ms()
+            while buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),starttime)<debounce_ms:
+                lcd.print_lcd(f"CHANNEL:        {dummydmxrxchannel:03}     EXIT=RED",False)
+
+                if not buttons[0].value() and utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms:
+                    starttime = utime.ticks_ms()
+                    dummydmxrxchannel -= 1
+                    utime.sleep(0.2)
+
+                if not buttons[1].value() and utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms:
+                    starttime = utime.ticks_ms()
+                    dummydmxrxchannel += 1
+                    utime.sleep(0.2)
+
+                if dummydmxrxchannel > 510: # upper bound
+                    dummydmxrxchannel = 510
+                elif dummydmxrxchannel < 0: # lower bound
+                    dummydmxrxchannel = 0
+
             lcd.print_lcd("SETUP   EXIT=RED"+"YEL = CHANGE C",False)
-            startime = utime.ticks_ms()
-            while not buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),startime)<debounce_ms:
+            starttime = utime.ticks_ms()
+            while not buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),starttime)<debounce_ms:
                 pass
 
     lcd.print_lcd("RUNNING         SETUP:PRESS BLUE",False)
@@ -207,7 +223,7 @@ async def main():
     global channels, brightness
     currentpattern = None
     currenttask = None
-    pressed = utime.ticks_ms()
+    starttime = utime.ticks_ms()
     lcd.print_lcd("RUNNING         SETUP:PRESS BLUE",False)
     await blank()
     while True:
@@ -244,7 +260,7 @@ async def main():
             currenttask = None
             currentpattern = None
 
-        if not buttons[0].value() and utime.ticks_diff(utime.ticks_ms(), pressed) > debounce_ms:
+        if not buttons[0].value() and utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms:
             await cancel(currenttask)
             currenttask = None
             currentpattern = None
