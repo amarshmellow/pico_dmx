@@ -18,10 +18,10 @@ led = machine.PWM(machine.Pin(LED_PIN, machine.Pin.OUT))
 led.freq(LED_FREQUENCY)
 
 buttons = []
-buttons.append(machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_UP))
-buttons.append(machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_UP))
-buttons.append(machine.Pin(20, machine.Pin.IN, machine.Pin.PULL_UP))
-buttons.append(machine.Pin(21, machine.Pin.IN, machine.Pin.PULL_UP))
+buttons.append(machine.Pin(18, machine.Pin.IN, machine.Pin.PULL_UP)) # green
+buttons.append(machine.Pin(19, machine.Pin.IN, machine.Pin.PULL_UP)) # blue
+buttons.append(machine.Pin(20, machine.Pin.IN, machine.Pin.PULL_UP)) # white
+buttons.append(machine.Pin(21, machine.Pin.IN, machine.Pin.PULL_UP)) # red
 
 
 debounce_ms = const(100)
@@ -86,8 +86,8 @@ alloc_emergency_exception_buf(512)  # Allocate Emergency Exception Buffer
 
 
 def update(grgbw_list):
-    global channels 
-    #lcd.print_lcd(" ".join(f"{value:03}" for value in grgbw_list[0:3])+"     "+" ".join(f"{value:03}" for value in grgbw_list[3:6]), False)
+    global channels
+    # lcd.print_lcd(" ".join(f"{value:03}" for value in grgbw_list[0:3])+"     "+" ".join(f"{value:03}" for value in grgbw_list[3:6]), False)
     channels = grgbw_list[0:2]
 
 
@@ -192,18 +192,18 @@ async def setup():
     lastpressed = None
 
     while buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),starttime)<debounce_ms:
-        lcd.print_lcd("SETUP   EXIT=RED"+"YEL = CHANGE C",False)
+        lcd.print_lcd("SETUP   EXIT=RED"+"GRN = CHANGE C",False)
 
-        if not buttons[2].value():
+        if not buttons[0].value():
             starttime = utime.ticks_ms()
             while buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),starttime)<debounce_ms:
-                lcd.print_lcd(f"CHANNEL:        {dummydmxrxchannel:03}     EXIT=RED",False)
+                lcd.print_lcd(f"CHANNEL:EXIT=RED{dummydmxrxchannel:03}      SET=GRN",False)
 
                 if utime.ticks_diff(utime.ticks_ms(), starttime) > 1000:
                     count = 0
                     lastpressed = None
 
-                if not buttons[0].value() and (utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms or count > 10):
+                if not buttons[1].value() and (utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms or count > 10):
                     starttime = utime.ticks_ms()
                     dummydmxrxchannel -= 1
                     if lastpressed == 0:
@@ -213,7 +213,7 @@ async def setup():
                     lastpressed = 0
                     utime.sleep(sleeptime)
 
-                if not buttons[1].value() and (utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms or count > 10):
+                if not buttons[2].value() and (utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms or count > 10):
                     starttime = utime.ticks_ms()
                     dummydmxrxchannel += 1
                     if lastpressed == 1:
@@ -233,7 +233,7 @@ async def setup():
                 elif dummydmxrxchannel < 0: # lower bound
                     dummydmxrxchannel = 0
 
-                if not buttons[2].value() and utime.ticks_diff(utime.ticks_ms(), starttime) > 1000:
+                if not buttons[0].value() and utime.ticks_diff(utime.ticks_ms(), starttime) > 1000:
                     dmxchannel["dmxchannel"] = dummydmxrxchannel
                     dmxrx_deviceaddress = dummydmxrxchannel
                     write_json()
@@ -244,32 +244,34 @@ async def setup():
                     utime.sleep(2)
             dummydmxrxchannel = dmxrx_deviceaddress
 
-            lcd.print_lcd("SETUP   EXIT=RED"+"YEL = CHANGE C",False)
+            lcd.print_lcd("SETUP   EXIT=RED"+"GRN = CHANGE C",False)
             starttime = utime.ticks_ms()
             while not buttons[3].value() or utime.ticks_diff(utime.ticks_ms(),starttime)<debounce_ms:
                 pass
 
-    lcd.print_lcd("RUNNING         SETUP:PRESS BLUE",False)
+    lcd.print_lcd(f"RUNNING  CH={dmxrx_deviceaddress:03} SETUP:PRESS BLUE",False)
     return
 
+async def dmx_polling_task():
+    while True:
+        dmx.loop()
+        await uasyncio.sleep_ms(0)
+
+async def cancel(currenttask):
+            if currenttask:
+                currenttask.cancel()
+                await currenttask
+                print("Task canceled")
 
 async def main():
     global channels, brightness
     currentpattern = None
     currenttask = None
     starttime = utime.ticks_ms()
-    lcd.print_lcd("RUNNING         SETUP:PRESS BLUE",False)
+    lcd.print_lcd(f"RUNNING  CH={dmxrx_deviceaddress:03} SETUP:PRESS BLUE",False)
     await blank()
     while True:
-        dmx.loop()
-        
         brightness = channels[1]
-
-        async def cancel(currenttask):
-            if currenttask:
-                currenttask.cancel()
-                await currenttask
-                print("Task canceled")
 
         if 64 < channels[0] < 127 and currentpattern != 1:
             await cancel(currenttask)
@@ -294,7 +296,7 @@ async def main():
             currenttask = None
             currentpattern = None
 
-        if not buttons[0].value() and utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms:
+        if not buttons[1].value() and utime.ticks_diff(utime.ticks_ms(), starttime) > debounce_ms:
             await cancel(currenttask)
             currenttask = None
             currentpattern = None
@@ -306,6 +308,7 @@ async def main():
 if __name__ == "__main__":
     try:
         uasyncio.create_task(led_flash())
+        uasyncio.create_task(dmx_polling_task())
         uasyncio.run(main())
     except KeyboardInterrupt:
         uasyncio.run(blank())

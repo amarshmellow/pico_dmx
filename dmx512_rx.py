@@ -60,26 +60,35 @@ class DMX:
 
     def loop(self):
         """ Monitors DMX RX and calls update functions if valid """
+
         if self.dmx_rx.any():
             self.dmx_buff+=self.dmx_rx.read(514)
             self.dmxrx_timer = time.ticks_ms()
             self.new_packet = True
+
         if time.ticks_diff(time.ticks_ms(), self.dmxrx_timer) > DMX_RXTIMEOUT:
             self.dmxrx_timer = time.ticks_ms()
+
             if len(self.dmx_buff) >= self.dmx_endchannel and self.dmx_buff[0] == 0 and self.new_packet:  # and self.dmx_buff[1] == 0
                 self.char_counter+=1  # Counts valid packets received (per second).
                 # self.dmxrx_list = list(self.dmx_buff[self.dmxrx_base-1:self.dmx_endchannel-1])  # Make a new list with just the channels we care about
                 self.dmxrx_list = list(self.dmx_buff[self.dmxrx_base:self.dmx_endchannel])  # Make a new list with just the channels we care about
+                
                 if self.callbackupdate:
                     self.callbackupdate(self.dmxrx_list)
+
                 self.new_packet = False
                 self.dmx_packet_length = len(self.dmx_buff) - 2
+
             self.dmx_buff = b''  # using bytearray() is a lot slower!
+
         if len(self.dmx_buff) > 600:
             # Catch invalid data to make sure the buffer doesn't overflow
             print(f"ERROR: DMX Buff Length overflow: Length={len(self.dmx_buff)}")
             self.dmx_buff = b''  # using bytearray() is a lot slower!
+
         self.loops+=1
+
         return self.dmx_status
 
     def __init__(self, address, channels, rx_pin=1):
@@ -99,7 +108,7 @@ class DMX:
         self._setdmxstatus(2, True)  # By Default we are online
         print(f"INFO: Setting up DMX512 Rx on Channels {self.dmxrx_base-1}-{self.dmx_endchannel-2} ...  ", end='')
         dmx_rx_pin = machine.Pin(rx_pin)
-        self.dmx_rx = machine.UART(0, baudrate=DMX_BAUD, rx=dmx_rx_pin, bits=8, parity=None, stop=2)
+        self.dmx_rx = machine.UART(0, baudrate=DMX_BAUD, rx=dmx_rx_pin, bits=8, parity=None, stop=2, timeout=0)
         self.timer_1second = machine.Timer(period=1000, mode=machine.Timer.PERIODIC, callback=self.secondcounter)
         print("Done.")
 
